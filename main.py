@@ -1,37 +1,74 @@
-from GUI.window import GameWindow
+from rules import Rules
 
-if __name__ == "__main__":
-    game = GameWindow()
-    game.run()
-    # test_ai.py - اختبار مستقل للـ AI
-print("🧪 اختبار Alpha-Beta + Evaluation...")
+EMPTY = 0
+ATTACKER = 1
+DEFENDER = 2
+KING = 3
+BOARD_SIZE = 9
 
-# استيراد الملفات
-from game_state import GameState
-from alphabeta import alphabeta
-from evaluation import Evaluation
-from ai_player import AIPlayer
+class Evaluation:
+    def __init__(self):
+        self.rules = Rules()
 
-print("✅ Imports شغالة!")
+    def evaluate(self, state):
+        if self.rules.is_king_win(state.board):
+            return -10000
 
-# إنشاء board تجريبي
-state = GameState()
-print("✅ GameState شغال!")
-print("Initial board:")
-state.print_board()
+        if self.rules.is_king_captured(state.board):
+            return 10000
 
-# اختبار 1: Evaluation
-eval_obj = Evaluation()
-score = eval_obj.evaluate(state)
-print(f"🏆 Initial evaluation: {score:.1f}")
+        king_score = self._king_position(state)
+        piece_score = self._piece_count(state)
+        mobility_score = self._mobility(state)
+        threat_score = self._king_threat(state)
 
-# اختبار 2: Alpha-Beta
-print("\n🤖 اختبار Alpha-Beta (depth=2)...")
-moves = state.get_legal_moves("black")
-if moves:
-    best_move = AIPlayer("easy").get_move(state, "black")
-    print(f"✅ أحسن move: {best_move}")
-else:
-    print("❌ No moves!")
+        return king_score + piece_score + mobility_score + threat_score
 
-print("\n🎉 الكل شغال! الـ AI جاهز!")
+    def _king_position(self, state):
+        pos = state.find_king()
+        if pos is None:
+            return 1000
+
+        r, c = pos
+        corners = [(0,0),(0,8),(8,0),(8,8)]
+
+        if (r,c) in corners:
+            return -1000
+
+        dist = min(abs(r-x)+abs(c-y) for x,y in corners)
+        return dist * 20
+
+    def _piece_count(self, state):
+        attackers, defenders = state.get_piece_counts()
+        return (attackers - defenders) * 50
+
+    def _mobility(self, state):
+        original = state.turn
+
+        state.turn = "ATTACKER"
+        a = len(state.get_legal_moves())
+
+        state.turn = "DEFENDER"
+        d = len(state.get_legal_moves())
+
+        state.turn = original
+
+        return (a - d) * 5
+
+    def _king_threat(self, state):
+        pos = state.find_king()
+        if pos is None:
+            return 1000
+
+        r, c = pos
+        s = 0
+
+        for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
+            nr, nc = r+dr, c+dc
+            if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                if state.board[nr][nc] == ATTACKER:
+                    s += 1
+            else:
+                s += 1
+
+        return s * 150
