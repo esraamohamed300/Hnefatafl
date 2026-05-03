@@ -51,7 +51,7 @@ def is_capture_partner(board, moving_piece, r, c):
 
 
 def would_be_captured(board, tr, tc, moving_piece):
-    # ✅ King is never blocked by sandwich logic — handled separately
+    # King is never blocked by sandwich logic — handled separately
     if moving_piece == KING:
         return False
 
@@ -81,7 +81,6 @@ def is_valid_move(board, sr, sc, tr, tc):
     # نفس الصف أو نفس العمود فقط
     if sr != tr and sc != tc:
         return False
-
     # لا يتم التحرك إلى نفس الموقع
     if sr == tr and sc == tc:
         return False
@@ -119,7 +118,7 @@ def apply_capture(board, r, c):
 
         if 0 <= r1 < BOARD_SIZE and 0 <= c1 < BOARD_SIZE:
             target = board[r1][c1]
-            # ✅ NEVER capture the king through regular sandwich logic
+            #  NEVER capture the king through regular sandwich logic
             if target == EMPTY or target == moved_piece or target == KING:
                 continue
             if is_capture_partner(board, moved_piece, r2, c2):
@@ -151,16 +150,24 @@ def is_king_captured(board):
         if not (0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE):
             return True
         # Only attackers count, NOT special squares
-        return board[nr][nc] == ATTACKER
+        return board[nr][nc] == ATTACKER or (nr, nc) in [(0,0),(0,8),(8,0),(8,8)]
 
-    above = is_hostile(r-1, c)
+    above = is_hostile(r-1, c) 
     below = is_hostile(r+1, c)
     left  = is_hostile(r, c-1)
     right = is_hostile(r, c+1)
 
     # Corner: 2 sides are walls, needs the other 2 to be attackers
-    if (r, c) in [(0,0), (0,8), (8,0), (8,8)]:
+    """
+if (r, c) in [(0,1),(1,0), (7,0), (8,1), (0,7), (1,8), (7,8), (8,7)]:
         return above and below and left and right
+
+
+"""
+    
+    if (r, c) in [(0,0), (0,8), (8,0), (8,8)]:
+        return above and below and left and right  
+    
 
     # Edge: 1 side is a wall, needs the other 3 to be attackers
     if r == 0 or r == BOARD_SIZE-1 or c == 0 or c == BOARD_SIZE-1:

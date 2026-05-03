@@ -39,7 +39,7 @@ class BoardGUI:
     def __init__(self, root):
         self.root = root
         root.configure(bg=BG)
-        root.resizable(False, False)
+        root.resizable(True, True)
 
         total_w = CELL_SIZE * BOARD_SIZE + PADDING * 2
         total_h = CELL_SIZE * BOARD_SIZE + PADDING * 2 + 60  # +60 for status bar
@@ -72,7 +72,7 @@ class BoardGUI:
             fg=ATK_RIM,
             bg=STATUS_BG
         )
-        self.status_label.pack(side="left", pady=16)
+        self.status_label.pack(side="left", pady=10)
 
         self.move_label = tk.Label(
             self.status_frame,
@@ -322,7 +322,7 @@ class BoardGUI:
         self.move_label.config(text=f"Move {self.move_count}")
 
         self.turn_indicator.delete("all")
-        self.turn_indicator.create_oval(1, 1, 17, 17, fill=dot, outline=dot_outline, width=2)
+        self.turn_indicator.create_oval(1, 1, 17, 17, fill=dot, outline=dot_outline, width=5)
 
     # ── interaction ───────────────────────────────────────────────────────────
     def on_hover(self, event):
