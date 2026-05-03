@@ -1,102 +1,74 @@
-import numpy as np
-from game_state import GameState
 from rules import Rules
+
+EMPTY = 0
+ATTACKER = 1
+DEFENDER = 2
+KING = 3
+BOARD_SIZE = 9
 
 class Evaluation:
     def __init__(self):
         self.rules = Rules()
 
-    def evaluate(self, state: GameState) -> float:
-        if state.check_king_escape():
+    def evaluate(self, state):
+        if self.rules.is_king_win(state.board):
             return -10000
 
-        if state.check_king_captured():
+        if self.rules.is_king_captured(state.board):
             return 10000
 
-        king_score = self._evaluate_king_position(state)
-        piece_score = self._evaluate_piece_count(state)
-        mobility_score = self._evaluate_mobility(state)
-        threat_score = self._evaluate_king_threat(state)
-        center_score = self._evaluate_center_control(state)
-        escape_score = self._evaluate_escape_routes(state)
+        king_score = self._king_position(state)
+        piece_score = self._piece_count(state)
+        mobility_score = self._mobility(state)
+        threat_score = self._king_threat(state)
 
-        total = (
-            king_score * 3 +
-            piece_score * 2 +
-            mobility_score * 1 +
-            threat_score * 4 +
-            center_score * 1 +
-            escape_score * 5
-        )
+        return king_score + piece_score + mobility_score + threat_score
 
-        return total
+    def _king_position(self, state):
+        pos = state.find_king()
+        if pos is None:
+            return 1000
 
-    def _evaluate_king_position(self, state):
-        row, col = state.king_pos
-        corners = [(0,0), (0,10), (10,0), (10,10)]
+        r, c = pos
+        corners = [(0,0),(0,8),(8,0),(8,8)]
 
-        if (row, col) in corners:
+        if (r,c) in corners:
             return -1000
 
-        distances = [abs(row-r)+abs(col-c) for r,c in corners]
-        min_dist = min(distances)
+        dist = min(abs(r-x)+abs(c-y) for x,y in corners)
+        return dist * 20
 
-        return min_dist * 20
+    def _piece_count(self, state):
+        attackers, defenders = state.get_piece_counts()
+        return (attackers - defenders) * 50
 
-    def _evaluate_piece_count(self, state):
-        black_count = len(state.black_pieces)
-        white_count = len(state.white_pieces)
-        return (black_count - white_count) * 50
+    def _mobility(self, state):
+        original = state.turn
 
-    def _evaluate_mobility(self, state):
-        black_moves = len(state.get_legal_moves("black"))
-        white_moves = len(state.get_legal_moves("white"))
-        return (black_moves - white_moves) * 5
+        state.turn = "ATTACKER"
+        a = len(state.get_legal_moves())
 
-    def _evaluate_king_threat(self, state):
-        row, col = state.king_pos
-        surrounded = 0
-        directions = [(0,1),(0,-1),(1,0),(-1,0)]
+        state.turn = "DEFENDER"
+        d = len(state.get_legal_moves())
 
-        for dr, dc in directions:
-            nr, nc = row + dr, col + dc
-            if 0 <= nr < 11 and 0 <= nc < 11:
-                if state.board[nr][nc] == 'B':
-                    surrounded += 1
+        state.turn = original
+
+        return (a - d) * 5
+
+    def _king_threat(self, state):
+        pos = state.find_king()
+        if pos is None:
+            return 1000
+
+        r, c = pos
+        s = 0
+
+        for dr, dc in [(0,1),(0,-1),(1,0),(-1,0)]:
+            nr, nc = r+dr, c+dc
+            if 0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE:
+                if state.board[nr][nc] == ATTACKER:
+                    s += 1
             else:
-                surrounded += 1
+                s += 1
 
-        return surrounded * 150
-
-    def _evaluate_center_control(self, state):
-        center_zone = [(4,4),(4,5),(4,6),(5,4),(5,5),(5,6),(6,4),(6,5),(6,6)]
-        score = 0
-
-        for r, c in center_zone:
-            if state.board[r][c] == 'B':
-                score += 20
-            elif state.board[r][c] == 'W':
-                score -= 20
-
-        return score
-
-    def _evaluate_escape_routes(self, state):
-        row, col = state.king_pos
-        directions = [(0,1),(0,-1),(1,0),(-1,0)]
-        open_paths = 0
-
-        for dr, dc in directions:
-            r, c = row, col
-            blocked = False
-
-            while 0 <= r < 11 and 0 <= c < 11:
-                if state.board[r][c] != '.':
-                    blocked = True
-                    break
-                r += dr
-                c += dc
-
-            if not blocked:
-                open_paths += 1
-
-        return -open_paths * 200
+        return s * 150
