@@ -1,11 +1,6 @@
 import copy
 import Core.rules as rules
-
-EMPTY = 0
-ATTACKER = 1
-DEFENDER = 2
-KING = 3
-BOARD_SIZE = 9
+from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE, CORNERS, SPECIAL_SQUARES
 
 
 class GameState:

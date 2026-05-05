@@ -1,38 +1,95 @@
-from evaluation import Evaluation
+from Core.game_state import GameState
+from AI.evaluation import evaluate
 
-evaluation = Evaluation()
-transposition_table = {}
+INF = float('inf')
 
-def alphabeta(state, depth, alpha, beta, maximizing):
-    key = (tuple(map(tuple, state.board)), depth, state.turn)
 
-    if key in transposition_table:
-        return transposition_table[key]
+def alphabeta(state: GameState, depth: int, alpha: float, beta: float,
+              maximizing: bool, ai_player: str) -> float:
+    """
+    Alpha-Beta Pruning algorithm.
+    
+    state       : current GameState
+    depth       : how many moves ahead to search
+    alpha       : best score maximizer can guarantee so far
+    beta        : best score minimizer can guarantee so far
+    maximizing  : True if current player is trying to maximize score
+    ai_player   : the AI's side ("ATTACKER" or "DEFENDER")
+    
+    Returns the best score found.
+    """
 
+    # ── base case ─────────────────────────────────────────────────────────────
     if depth == 0 or state.is_terminal():
-        score = evaluation.evaluate(state)
-        transposition_table[key] = score
-        return score
+        return evaluate(state, ai_player)
 
-    moves = state.get_legal_moves()
+    legal_moves = state.get_legal_moves()
 
+    # no moves available → treat as terminal
+    if not legal_moves:
+        return evaluate(state, ai_player)
+
+    # ── maximizing player (AI's turn) ─────────────────────────────────────────
     if maximizing:
-        value = -float('inf')
-        for move in moves:
+        max_score = -INF
+
+        for move in legal_moves:
             new_state = state.apply_move(move)
-            value = max(value, alphabeta(new_state, depth-1, alpha, beta, False))
-            alpha = max(alpha, value)
+            score = alphabeta(new_state, depth - 1, alpha, beta, False, ai_player)
+
+            max_score = max(max_score, score)
+            alpha = max(alpha, score)
+
+            # ✂ prune — minimizer will never pick this branch
             if beta <= alpha:
                 break
-        transposition_table[key] = value
-        return value
+
+        return max_score
+
+    # ── minimizing player (opponent's turn) ───────────────────────────────────
     else:
-        value = float('inf')
-        for move in moves:
+        min_score = INF
+
+        for move in legal_moves:
             new_state = state.apply_move(move)
-            value = min(value, alphabeta(new_state, depth-1, alpha, beta, True))
-            beta = min(beta, value)
+            score = alphabeta(new_state, depth - 1, alpha, beta, True, ai_player)
+
+            min_score = min(min_score, score)
+            beta = min(beta, score)
+
+            # ✂ prune — maximizer will never pick this branch
             if beta <= alpha:
                 break
-        transposition_table[key] = value
-        return value
+
+        return min_score
+
+
+def get_best_move(state: GameState, depth: int, ai_player: str):
+    """
+    Calls alphabeta for every legal move and returns the best one.
+    
+    depth is set by difficulty:
+    Easy   → depth 1
+    Medium → depth 3
+    Hard   → depth 5
+    """
+    best_move  = None
+    best_score = -INF
+    alpha      = -INF
+    beta       =  INF
+
+    legal_moves = state.get_legal_moves()
+
+    for move in legal_moves:
+        new_state = state.apply_move(move)
+
+        # after AI moves, opponent minimizes → pass False
+        score = alphabeta(new_state, depth - 1, alpha, beta, False, ai_player)
+
+        if score > best_score:
+            best_score = score
+            best_move  = move
+
+        alpha = max(alpha, score)
+
+    return best_move

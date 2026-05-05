@@ -8,14 +8,7 @@ This module implements the key Hnefatafl rules used by the GUI:
 - The king cannot assist in captures.
 - King escape and king capture conditions.
 """
-
-BOARD_SIZE = 9
-EMPTY = 0
-ATTACKER = 1
-DEFENDER = 2
-KING = 3
-
-SPECIAL_SQUARES = {(0, 0), (0, 8), (8, 0), (8, 8), (4, 4)}
+from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE, CORNERS, SPECIAL_SQUARES
 
 
 def is_path_clear(board, sr, sc, tr, tc):
