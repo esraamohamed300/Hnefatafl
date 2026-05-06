@@ -16,10 +16,7 @@ DEFENDER_GUARD     =  10     # score per defender adjacent to king
 
 
 def evaluate(state: GameState, ai_player: str) -> int:
-    """
-    Returns a score from the perspective of ai_player.
-    Positive = good for ai_player, Negative = bad.
-    """
+
     # ── terminal states ───────────────────────────────────────────────────────
     if state.is_terminal():
         winner = state.get_winner()
@@ -38,16 +35,11 @@ def evaluate(state: GameState, ai_player: str) -> int:
     attackers, defenders = state.get_piece_counts()
 
     # ── 1. piece advantage ────────────────────────────────────────────────────
-    # more attackers = good for attacker, more defenders = good for defender
     piece_score = (attackers * ATTACKER_PIECE) - (defenders * DEFENDER_PIECE)
-    # piece_score > 0 → attacker advantage
-    # piece_score < 0 → defender advantage
-
     # ── 2. king distance to nearest corner ───────────────────────────────────
-    # closer king to corner = good for defender
+    
     min_dist = min(abs(kr - cr) + abs(kc - cc) for cr, cc in CORNERS)
     corner_score = -min_dist * KING_CORNER_DIST
-    # more negative distance = closer to corner = better for defender
 
     # ── 3. king mobility ──────────────────────────────────────────────────────
     king_moves = _count_king_moves(state.board, kr, kc)
@@ -62,15 +54,14 @@ def evaluate(state: GameState, ai_player: str) -> int:
     # ── 6. king has open path to corner ──────────────────────────────────────
     safe_bonus = KING_SAFE if _king_has_open_path(state.board, kr, kc) else 0
 
-    # ── combine from DEFENDER perspective ────────────────────────────────────
     # defender wants: king close to corner, king mobile, king guarded, few attackers
     defender_score = (
-        - piece_score       # fewer attackers = better
-        + corner_score      # king close to corner = better  (corner_score is negative of dist)
-        + mobility_score    # king can move = better
-        - surround_score    # fewer attackers around king = better
-        + guard_score       # more defenders around king = better
-        + safe_bonus        # open path to corner = better
+        - piece_score      
+        + corner_score      
+        + mobility_score   
+        - surround_score    
+        + guard_score       
+        + safe_bonus       
     )
 
     # ── flip if ai is attacker ────────────────────────────────────────────────
@@ -82,7 +73,7 @@ def evaluate(state: GameState, ai_player: str) -> int:
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def _count_king_moves(board, kr, kc):
-    """Count how many squares the king can move to."""
+
     count = 0
     for tr in range(BOARD_SIZE):
         for tc in range(BOARD_SIZE):
@@ -95,7 +86,7 @@ def _count_king_moves(board, kr, kc):
 
 
 def _count_adjacent(board, r, c, piece_type):
-    """Count how many pieces of piece_type are adjacent to (r, c)."""
+
     count = 0
     for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
         nr, nc = r+dr, c+dc
@@ -106,7 +97,7 @@ def _count_adjacent(board, r, c, piece_type):
 
 
 def _path_clear(board, sr, sc, tr, tc):
-    """Check if path is clear between two squares (rook movement)."""
+    
     if sr == tr:
         step = 1 if tc > sc else -1
         for c in range(sc+step, tc, step):
@@ -121,7 +112,6 @@ def _path_clear(board, sr, sc, tr, tc):
 
 
 def _king_has_open_path(board, kr, kc):
-    """Return True if the king has at least one clear straight line to a corner."""
     for cr, cc in CORNERS:
         if kr == cr or kc == cc:
             if _path_clear(board, kr, kc, cr, cc):

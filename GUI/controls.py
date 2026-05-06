@@ -1,5 +1,5 @@
 import tkinter as tk
-#import math
+
 
 # ── Norse colour palette ──────────────────────────────────────────────────────
 BG          = "#0d0a05"
@@ -22,7 +22,7 @@ RUNE_CLR    = "#3d2a10"
 
 
 def _make_btn(parent, text, command, width=220, height=44, style="gold"):
-    """Reusable styled button using Canvas for precise rendering."""
+    
     fg     = GOLD_LIGHT if style == "gold" else TEXT
     bg_n   = BTN_BG
     bg_h   = BTN_HOVER
@@ -34,16 +34,16 @@ def _make_btn(parent, text, command, width=220, height=44, style="gold"):
     def _draw(hover=False):
         c.delete("all")
         bg = bg_h if hover else bg_n
-        # outer border
+        
         c.create_rectangle(0, 0, width-1, height-1,
                            fill=bg, outline=bdr, width=2)
-        # inner subtle line
+       
         c.create_rectangle(3, 3, width-4, height-4,
                            fill="", outline=RUNE_CLR, width=1)
-        # corner ornaments
+        
         for ox, oy in [(6,6),(width-6,6),(6,height-6),(width-6,height-6)]:
             c.create_oval(ox-2, oy-2, ox+2, oy+2, fill=GOLD_DIM, outline="")
-        # text
+        
         c.create_text(width//2, height//2, text=text,
                       fill=fg, font=("Georgia", 11, "bold"))
 
@@ -55,7 +55,7 @@ def _make_btn(parent, text, command, width=220, height=44, style="gold"):
 
 
 def _divider(parent, width=420):
-    """Decorative runic divider line."""
+   
     c = tk.Canvas(parent, width=width, height=20,
                   bg=parent["bg"], highlightthickness=0)
     mid = width // 2
@@ -68,11 +68,11 @@ class _ToggleGroup:
     def __init__(self, parent, options, variable, btn_width=170):
         self.variable  = variable
         self.buttons   = {}
-        self.texts     = {}  #  store text for each value
+        self.texts     = {}  
         self.frame     = tk.Frame(parent, bg=parent["bg"])
 
         for text, val in options:
-            self.texts[val] = text  #  save it here
+            self.texts[val] = text 
             c = tk.Canvas(self.frame, width=btn_width, height=46,
                           bg=parent["bg"], highlightthickness=0, cursor="hand2")
             self.buttons[val] = c
@@ -89,7 +89,7 @@ class _ToggleGroup:
                 if selected:
                     canvas.create_line(4, 1, btn_width-4, 1,
                                        fill=GOLD_LIGHT, width=1)
-                #  use stored text
+                
                 canvas.create_text(btn_width//2, 23, text=self.texts[value],
                                    fill=fg, font=("Georgia", 10, "bold"))
 
@@ -123,9 +123,9 @@ class _ToggleGroup:
     def pack(self, **kw):
         self.frame.pack(**kw)
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 #  HOME PAGE
-# ─────────────────────────────────────────────────────────────────────────────
+
 class HomePage(tk.Frame):
     def __init__(self, parent, on_new_game):
         super().__init__(parent, bg=BG)
@@ -190,9 +190,9 @@ class HomePage(tk.Frame):
                  font=("Georgia", 8), fg=TEXT_DIM, bg=BG).pack(pady=(4, 0))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 #  SETTINGS PAGE
-# ─────────────────────────────────────────────────────────────────────────────
+
 class SettingsPage(tk.Frame):
     def __init__(self, parent, on_start_game, on_back):
         super().__init__(parent, bg=BG)

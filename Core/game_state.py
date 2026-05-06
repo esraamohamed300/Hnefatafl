@@ -4,26 +4,18 @@ from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE, CORNERS, 
 
 
 class GameState:
-    def __init__(self, board, turn):
-        """
-        board : 9x9 2-D list
-        turn  : "ATTACKER" or "DEFENDER"
-        """
+    def __init__(self, board, turn ,history=None):
+       
         self.board = board
         self.turn  = turn
+        self.history = history if history else []
 
     # ── copy ──────────────────────────────────────────────────────────────────
     def clone(self):
-        """Return a deep copy — the AI needs this to explore without
-        modifying the real board."""
         return GameState(copy.deepcopy(self.board), self.turn)
 
     # ── legal moves ───────────────────────────────────────────────────────────
     def get_legal_moves(self):
-        """
-        Return a list of (sr, sc, tr, tc) tuples for every legal move
-        the current player can make.
-        """
         moves = []
         for sr in range(BOARD_SIZE):
             for sc in range(BOARD_SIZE):
@@ -43,10 +35,6 @@ class GameState:
 
     # ── apply a move ──────────────────────────────────────────────────────────
     def apply_move(self, move):
-        """
-        Apply (sr, sc, tr, tc) and return a NEW GameState.
-        The current state is never modified — safe for the AI tree search.
-        """
         sr, sc, tr, tc = move
         new_state = self.clone()
 
@@ -57,18 +45,15 @@ class GameState:
 
         # flip turn
         new_state.turn = "DEFENDER" if self.turn == "ATTACKER" else "ATTACKER"
+        new_state.history = self.history + [move]
         return new_state
 
     # ── terminal checks ───────────────────────────────────────────────────────
     def is_terminal(self):
-        """Return True if the game is over."""
+  
         return rules.is_king_win(self.board) or rules.is_king_captured(self.board)
 
     def get_winner(self):
-        """
-        Call only when is_terminal() is True.
-        Returns "DEFENDER" or "ATTACKER".
-        """
         if rules.is_king_win(self.board):
             return "DEFENDER"
         if rules.is_king_captured(self.board):
@@ -87,7 +72,7 @@ class GameState:
         return attackers, defenders
 
     def find_king(self):
-        """Return (row, col) of the king, or None if captured."""
+
         for r in range(BOARD_SIZE):
             for c in range(BOARD_SIZE):
                 if self.board[r][c] == KING:

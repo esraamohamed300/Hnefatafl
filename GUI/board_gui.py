@@ -3,10 +3,12 @@ from tkinter import messagebox
 import Core.rules as rules
 from Core.game_state import GameState
 from AI.ai_player import AIPlayer
-from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE, CORNERS, SPECIAL_SQUARES
+from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE
 
-CELL_SIZE  = 72
-PADDING    = 50
+CELL_SIZE   = 72
+PADDING     = 50
+PANEL_WIDTH = 200
+
 # ── Norse colour palette ──────────────────────────────────────────────────────
 BG          = "#1a1208"
 BOARD_LIGHT = "#c8a96e"
@@ -18,6 +20,10 @@ LABEL_CLR   = "#e8c98a"
 STATUS_BG   = "#0f0b05"
 HIGHLIGHT   = "#ffe066"
 MOVE_DOT    = "#66ffcc"
+TEXT_CLR    = "#e8c98a"
+BORDER_GOLD = "#c8973a"
+BORDER      = "#3d2a10"
+GOLD_LIGHT  = "#ffd700"
 ATK_FILL  = "#1a1a2e"
 ATK_RIM   = "#e94560"
 DEF_FILL  = "#f0ead6"
@@ -33,27 +39,74 @@ class BoardGUI(tk.Frame):
     def __init__(self, parent, mode, human_side, difficulty, on_end_game):
         super().__init__(parent, bg=BG)
 
-        self.mode        = mode          # "Human" or "AI"
-        self.human_side  = human_side    # "ATTACKER" or "DEFENDER"
-        self.difficulty  = difficulty    # "Easy", "Medium", "Hard"
-        self.on_end_game = on_end_game   # callback → returns to home page
+        self.mode        = mode
+        self.human_side  = human_side
+        self.difficulty  = difficulty
+        self.on_end_game = on_end_game
 
         # ── AI setup ──────────────────────────────────────────────────────────
         if self.mode == "AI":
-            ai_side   = "DEFENDER" if human_side == "ATTACKER" else "ATTACKER"
-            self.ai   = AIPlayer(ai_side, difficulty)
+            ai_side = "DEFENDER" if human_side == "ATTACKER" else "ATTACKER"
+            self.ai = AIPlayer(ai_side, difficulty)
         else:
-            self.ai   = None
+            self.ai = None
+
+        # ── main layout: board left, log panel right ──────────────────────────
+        self.main_frame = tk.Frame(self, bg=BG)
+        self.main_frame.pack(fill="both", expand=True, pady=(10, 0))
 
         # ── canvas ────────────────────────────────────────────────────────────
         self.canvas = tk.Canvas(
-            self,
+            self.main_frame,
             width  = CELL_SIZE * BOARD_SIZE + PADDING * 2,
             height = CELL_SIZE * BOARD_SIZE + PADDING * 2,
             bg     = BG,
             highlightthickness = 0
         )
-        self.canvas.pack(pady=(10, 0))
+        self.canvas.pack(side="left")
+
+        # ── move log panel ────────────────────────────────────────────────────
+        log_frame = tk.Frame(self.main_frame, bg=BG, width=PANEL_WIDTH)
+        log_frame.pack(side="left", fill="y", padx=(0, 16))
+        log_frame.pack_propagate(False)
+
+        tk.Label(
+            log_frame,
+            text="MOVE LOG",
+            font=("Georgia", 11, "bold"),
+            fg=GOLD_LIGHT, bg=BG
+        ).pack(pady=(20, 4))
+
+        # decorative line
+        tk.Canvas(
+            log_frame, width=160, height=2,
+            bg=BORDER_GOLD, highlightthickness=0
+        ).pack()
+
+        # scrollable listbox
+        list_frame = tk.Frame(log_frame, bg=BG)
+        list_frame.pack(fill="both", expand=True, pady=8)
+
+        scrollbar = tk.Scrollbar(list_frame, bg=BG)
+        scrollbar.pack(side="right", fill="y")
+
+        self.log_list = tk.Listbox(
+            list_frame,
+            font=("Georgia", 9),
+            fg=TEXT_CLR,
+            bg="#0f0b05",
+            selectbackground="#2a1c0a",
+            selectforeground=GOLD_LIGHT,
+            borderwidth=0,
+            highlightthickness=1,
+            highlightcolor=BORDER_GOLD,
+            highlightbackground=BORDER,
+            yscrollcommand=scrollbar.set,
+            width=22,
+            activestyle="none"
+        )
+        self.log_list.pack(side="left", fill="both", expand=True)
+        scrollbar.config(command=self.log_list.yview)
 
         # ── status bar ────────────────────────────────────────────────────────
         self.status_frame = tk.Frame(self, bg=STATUS_BG, height=52)
@@ -97,20 +150,20 @@ class BoardGUI(tk.Frame):
         self.end_btn.bind("<Leave>",    lambda e: self.end_btn.config(bg="#3d1f0a"))
 
         # ── game state ────────────────────────────────────────────────────────
-        self.board       = self._create_initial_board()
-        self.selected    = None
-        self.valid_moves = []
-        self.turn        = "ATTACKER"
-        self.move_count  = 0
-        self.hovered     = None
-        self.game_over   = False
+        self.board        = self._create_initial_board()
+        self.selected     = None
+        self.valid_moves  = []
+        self.turn         = "ATTACKER"
+        self.move_count   = 0
+        self.hovered      = None
+        self.game_over    = False
+        self.move_history = []
 
         self.draw_board()
         self._update_status()
         self.canvas.bind("<Button-1>", self.on_click)
         self.canvas.bind("<Motion>",   self.on_hover)
 
-        # if AI goes first (AI is attacker), trigger immediately
         if self.mode == "AI" and self.ai.side == "ATTACKER":
             self.after(500, self._ai_move)
 
@@ -136,6 +189,28 @@ class BoardGUI(tk.Frame):
 
     def _rc(self, x, y):
         return (y - PADDING) // CELL_SIZE, (x - PADDING) // CELL_SIZE
+
+    # ── move log ──────────────────────────────────────────────────────────────
+    def _log_move(self, sr, sc, tr, tc):
+        def to_notation(r, c):
+            return f"{chr(ord('A') + c)}{BOARD_SIZE - r}"
+
+        move_num = len(self.move_history) + 1
+        who      = "ATK" if self.turn == "ATTACKER" else "DEF"
+        frm      = to_notation(sr, sc)
+        to       = to_notation(tr, tc)
+        entry    = f"{move_num:>3}.  {who}  {frm} → {to}"
+
+        self.move_history.append(entry)
+        self.log_list.insert(tk.END, entry)
+
+        idx = self.log_list.size() - 1
+        if self.turn == "ATTACKER":
+            self.log_list.itemconfig(idx, fg="#e94560")
+        else:
+            self.log_list.itemconfig(idx, fg="#4a90d9")
+
+        self.log_list.see(tk.END)
 
     # ── drawing ───────────────────────────────────────────────────────────────
     def draw_board(self):
@@ -295,7 +370,6 @@ class BoardGUI(tk.Frame):
         else:
             txt, color, dot, dot_rim = "DEFENDER'S TURN", "#4a90d9", DEF_FILL, DEF_RIM
 
-        # add AI label if it's AI's turn
         if self.mode == "AI" and self.turn == self.ai.side:
             txt += "  🤖"
 
@@ -315,14 +389,14 @@ class BoardGUI(tk.Frame):
             return
 
         move = self.ai.get_move(self.board, self.turn)
-
         if move is None:
             return
 
         sr, sc, tr, tc = move
         self.board[tr][tc] = self.board[sr][sc]
         self.board[sr][sc] = EMPTY
-        self.move_count += 1
+        self.move_count   += 1
+        self._log_move(sr, sc, tr, tc)       
 
         rules.apply_capture(self.board, tr, tc)
         self.draw_board()
@@ -374,7 +448,6 @@ class BoardGUI(tk.Frame):
 
     # ── click ─────────────────────────────────────────────────────────────────
     def on_click(self, event):
-        # block clicks when game is over or it's AI's turn
         if self.game_over:
             return
         if self.mode == "AI" and self.turn == self.ai.side:
@@ -396,10 +469,10 @@ class BoardGUI(tk.Frame):
         sr, sc = self.selected
 
         if rules.is_valid_move(self.board, sr, sc, row, col):
-            # apply human move
             self.board[row][col] = self.board[sr][sc]
             self.board[sr][sc]   = EMPTY
             self.move_count     += 1
+            self._log_move(sr, sc, row, col) 
 
             rules.apply_capture(self.board, row, col)
 
@@ -410,16 +483,13 @@ class BoardGUI(tk.Frame):
             if self._check_game_over():
                 return
 
-            # flip turn
             self.turn = "DEFENDER" if self.turn == "ATTACKER" else "ATTACKER"
             self._update_status()
 
-            # trigger AI move after short delay
             if self.mode == "AI":
                 self.after(400, self._ai_move)
 
         else:
-            # re-select a different friendly piece
             piece = self.board[row][col]
             if (self.turn == "ATTACKER" and piece == ATTACKER) or \
                (self.turn == "DEFENDER" and piece in (DEFENDER, KING)):

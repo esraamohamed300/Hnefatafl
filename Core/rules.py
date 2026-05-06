@@ -1,25 +1,14 @@
-"""Core Hnefatafl rules engine.
 
-This module implements the key Hnefatafl rules used by the GUI:
-- Movement like a rook: any number of empty squares in a straight line.
-- No passing through other pieces, no sharing a square.
-- Custodial capture by sandwiching opponents horizontally or vertically.
-- Special capture squares: throne and corner spaces act as capturing partners.
-- The king cannot assist in captures.
-- King escape and king capture conditions.
-"""
 from utils.helpers import EMPTY, ATTACKER, DEFENDER, KING, BOARD_SIZE, CORNERS, SPECIAL_SQUARES
 
 
 def is_path_clear(board, sr, sc, tr, tc):
-    # حركة أفقي
     if sr == tr:
         step = 1 if tc > sc else -1
         for c in range(sc + step, tc, step):
             if board[sr][c] != EMPTY:
                 return False
 
-    # حركة رأسي
     elif sc == tc:
         step = 1 if tr > sr else -1
         for r in range(sr + step, tr, step):
@@ -44,7 +33,7 @@ def is_capture_partner(board, moving_piece, r, c):
 
 
 def would_be_captured(board, tr, tc, moving_piece):
-    # King is never blocked by sandwich logic — handled separately
+ 
     if moving_piece == KING:
         return False
 
@@ -71,27 +60,23 @@ def would_be_captured(board, tr, tc, moving_piece):
     return False
 
 def is_valid_move(board, sr, sc, tr, tc):
-    # نفس الصف أو نفس العمود فقط
+    piece = board[sr][sc]
+
     if sr != tr and sc != tc:
         return False
-    # لا يتم التحرك إلى نفس الموقع
+    
     if sr == tr and sc == tc:
         return False
 
-    # الهدف لازم يكون فاضي
     if board[tr][tc] != EMPTY:
         return False
 
-    piece = board[sr][sc]
-    # Only the King may enter corners or the throne
     if (tr, tc) in SPECIAL_SQUARES and piece != KING:
         return False
     
-    # الطريق لازم يكون فاضي
     if not is_path_clear(board, sr, sc, tr, tc):
         return False
 
-    # لا يمكن أن تتوقف القطعة داخل ساندويتش
     if would_be_captured(board, tr, tc, board[sr][sc]):
         return False
 
@@ -111,19 +96,19 @@ def apply_capture(board, r, c):
 
         if 0 <= r1 < BOARD_SIZE and 0 <= c1 < BOARD_SIZE:
             target = board[r1][c1]
-            #  NEVER capture the king through regular sandwich logic
+           
             if target == EMPTY or target == moved_piece or target == KING:
                 continue
             if is_capture_partner(board, moved_piece, r2, c2):
                 board[r1][c1] = EMPTY
 
 def is_king_win(board):
-    corners = [(0, 0), (0, 8), (8, 0), (8, 8)]
-    return any(board[r][c] == KING for r, c in corners)
+
+    return any(board[r][c] == KING for r, c in CORNERS)
 
 
 def is_king_captured(board):
-    # Find the king
+   
     king_pos = None
     for r in range(BOARD_SIZE):
         for c in range(BOARD_SIZE):
@@ -139,10 +124,10 @@ def is_king_captured(board):
     r, c = king_pos
 
     def is_hostile(nr, nc):
-        # Out of bounds = wall = hostile
+       
         if not (0 <= nr < BOARD_SIZE and 0 <= nc < BOARD_SIZE):
             return True
-        # Only attackers count, NOT special squares
+        
         return board[nr][nc] == ATTACKER or (nr, nc) in [(0,0),(0,8),(8,0),(8,8)]
 
     above = is_hostile(r-1, c) 
@@ -151,20 +136,12 @@ def is_king_captured(board):
     right = is_hostile(r, c+1)
 
     # Corner: 2 sides are walls, needs the other 2 to be attackers
-    """
-if (r, c) in [(0,1),(1,0), (7,0), (8,1), (0,7), (1,8), (7,8), (8,7)]:
-        return above and below and left and right
-
-
-"""
-    
     if (r, c) in [(0,0), (0,8), (8,0), (8,8)]:
         return above and below and left and right  
-    
 
     # Edge: 1 side is a wall, needs the other 3 to be attackers
     if r == 0 or r == BOARD_SIZE-1 or c == 0 or c == BOARD_SIZE-1:
         return above and below and left and right
 
-    # Open board: needs all 4 sides to be attackers
+    # needs all 4 sides to be attackers
     return above and below and left and right

@@ -15,7 +15,7 @@ class GameWindow:
 
     # ── navigation ────────────────────────────────────────────────────────────
     def _clear(self):
-        """Destroy the current page before showing a new one."""
+    
         if self.current_frame:
             self.current_frame.destroy()
             self.current_frame = None
@@ -29,7 +29,7 @@ class GameWindow:
         frame.pack(expand=True, fill="both")
         self.current_frame = frame
 
-        # fix window size for home page
+        
         self.root.geometry("560x540")
         self._center()
 
@@ -43,7 +43,7 @@ class GameWindow:
         frame.pack(expand=True, fill="both")
         self.current_frame = frame
 
-        # fix window size for settings page
+       
         self.root.geometry("560x580")
         self._center()
 
@@ -59,8 +59,8 @@ class GameWindow:
         frame.pack(expand=True, fill="both")
         self.current_frame = frame
 
-        # fix window size for game board
-        self.root.geometry("698x760")
+      
+        self.root.geometry("900x760")
         self._center()
 
     # ── center window on screen ───────────────────────────────────────────────
