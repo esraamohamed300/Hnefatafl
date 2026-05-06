@@ -19,17 +19,17 @@ def alphabeta(state: GameState, depth: int, alpha: float, beta: float,
     Returns the best score found.
     """
 
-    # ── base case ─────────────────────────────────────────────────────────────
+
     if depth == 0 or state.is_terminal():
         return evaluate(state, ai_player)
 
     legal_moves = state.get_legal_moves()
 
-    # no moves available → treat as terminal
+
     if not legal_moves:
         return evaluate(state, ai_player)
 
-    # ── maximizing player (AI's turn) ─────────────────────────────────────────
+
     if maximizing:
         max_score = -INF
 
@@ -40,13 +40,13 @@ def alphabeta(state: GameState, depth: int, alpha: float, beta: float,
             max_score = max(max_score, score)
             alpha = max(alpha, score)
 
-            # ✂ prune — minimizer will never pick this branch
+
             if beta <= alpha:
                 break
 
         return max_score
 
-    # ── minimizing player (opponent's turn) ───────────────────────────────────
+
     else:
         min_score = INF
 
@@ -57,14 +57,15 @@ def alphabeta(state: GameState, depth: int, alpha: float, beta: float,
             min_score = min(min_score, score)
             beta = min(beta, score)
 
-            # ✂ prune — maximizer will never pick this branch
+            
             if beta <= alpha:
                 break
 
         return min_score
 
 
-def get_best_move(state: GameState, depth: int, ai_player: str):
+def get_best_move(state: GameState, depth:
+                int, ai_player: str):
     """
     Calls alphabeta for every legal move and returns the best one.
     
@@ -83,7 +84,7 @@ def get_best_move(state: GameState, depth: int, ai_player: str):
     for move in legal_moves:
         new_state = state.apply_move(move)
 
-        # after AI moves, opponent minimizes → pass False
+
         score = alphabeta(new_state, depth - 1, alpha, beta, False, ai_player)
 
         if score > best_score:
